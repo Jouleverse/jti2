@@ -33,7 +33,7 @@ JTI，就是对于在去中心化的链上实现一套可以抗女巫攻击的�
 把整个JTI v1的三个设计要素进行分离，解耦合为三个部分：
 
 功能 functionality | 实现 implementation | 元数据 metadata | 赋予权 assigner | 条件 condition | 撤销权 revoker
--|-|-|-|-
+-|-|-|-|-|-
 分组标记 | group NFT | group, assigner | 责任组长 | 1. 互加微信，进分组 2. 填登记表 | 审计人
 可信身份 | identity NFT | id, timestamp, assigner | 第二组长 | 1. 互加微信 2. 二次确认登记表已填写无误 | 审计人
 可信级别 | identity NFT | 星级(scale 1-10) | Oracle | TBD | 审计人
