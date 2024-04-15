@@ -42,11 +42,13 @@ JTI，就是对于在去中心化的链上实现一套可以抗女巫攻击的�
 
 name | JTIConfig
 -|-
-owner | 平稳运行后移交给JNSDAO多签；可以增删groupAdmin、groupAuditor、identityAuditor、starOracle
-groupAdmin | ```mapping(address=>uint)``` 组号 1-10 未来可以扩展；可以多个地址负责一个组；赋组时组长只能赋本组号；可以改本组成员的组号，改成其他组号（转组）
+owner | 平稳运行后移交给JNSDAO多签；可以增删groupAdmin、groupAuditor、identityAuditor <del>、starOracle</del>
+groupAdmin | ```mapping(uint=>address)``` 组号 1-10 未来可以扩展；<del>可以多个地址负责一个组</del> 应允许一个地址（组长）兼任多个组？；赋组时组长只能赋本组号；可以改本组成员的组号，改成其他组号（转组）
 groupAuditor | ```mapping(address=>bool)``` <del>可以revoke group NFT</del>；可以任意改组号（不能赋组号）；
-identityAuditor | ```mapping(address=>bool)``` 可以revoke identity NFT；可以任意编辑星级
-starOracle | ```mapping(address=>uint)``` 可以在指定星级以下加星、减星
+identityAuditor | ```mapping(address=>bool)``` 可以revoke identity NFT <del>；可以任意编辑星级</del>
+<del>starOracle</del> | <del>```mapping(address=>uint)``` 可以在指定星级以下加星、减星</del>（暂先删除标星设计）
+
+组长兼任的情况，如果允许同一个组长使用两个地址，就会出现自己set group然后自己assign identity的问题。
 
 ## 分组标记 Group NFT
 
@@ -58,7 +60,7 @@ group | 组号；0 = 无分组
 groupAddressList | 反向索引，用于枚举某个组下所有的JTI
 assigner | 赋组组长的地址（记录用）
 func assign(mint) | 仅groupAdmin
-func revoke(burn) | 取消此功能。group NFT不需要revoke
+<del>func revoke(burn)</del> | 取消此功能。group NFT不需要revoke
 func changeGroup | 仅本组admin或auditor
 func tokenURI | 返回NFT json
 

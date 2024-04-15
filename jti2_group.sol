@@ -1366,93 +1366,93 @@ abstract contract SBT is ERC721Enumerable {
 }
 
 interface IJTI2Config {
-	function GroupAdmin(address) external returns (uint256); // admin address => group id
-	function GroupAuditor(address) external returns (bool); // auditor address => true/false
+	function groupAdmin(uint256) external returns (address); // admin address => group id
+	function groupAuditor(address) external returns (bool); // auditor address => true/false
 }
 
 contract JTI2Group is SBT, ReentrancyGuard, Ownable {
 
 	address public _configAddress;
 
+	uint256 public nextTokenId = 0; // used for minting token, esp. while supporting revoke
+
 	uint256[] public tokenGroup; // token id => group id
 	mapping(address => uint256) public addressToken; // address => token id
 
-    using HitchensUnorderedAddressSetLib for HitchensUnorderedAddressSetLib.Set;
+	using HitchensUnorderedAddressSetLib for HitchensUnorderedAddressSetLib.Set;
 	mapping(uint256 => HitchensUnorderedAddressSetLib.Set) groupMembers; // group id => address set
 
 	function tokenURI(uint256 tokenId) override public view returns (string memory) {
 
 		string memory image = string(abi.encodePacked('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ', toString(32 + bytes(toString(tokenGroup[tokenId])).length * 20), ' 25" xml:space="preserve"><text x="2" y="20" style="font-size:20">JTI Group ', toString(tokenGroup[tokenId]), '</text>'));
-		
+
 		image = string(abi.encodePacked(image, '</svg>'));
-        
-        string memory json = Base64.encode(bytes(string(abi.encodePacked('{"name": "JTIv2 Group #', toString(tokenId), '", "description": "JTIv2 Group", "group":', toString(tokenGroup[tokenId]), ', "image": "data:image/svg+xml;base64,', Base64.encode(bytes(image)), '"}'))));
 
-        string memory output = string(abi.encodePacked('data:application/json;base64,', json));
+		string memory json = Base64.encode(bytes(string(abi.encodePacked('{"name": "JTIv2 Group #', toString(tokenId), '", "description": "JTIv2 Group", "group":', toString(tokenGroup[tokenId]), ', "image": "data:image/svg+xml;base64,', Base64.encode(bytes(image)), '"}'))));
 
-        return output;
-    }
+		string memory output = string(abi.encodePacked('data:application/json;base64,', json));
 
-    function assign(address to) public nonReentrant {
+		return output;
+	}
+
+	function assign(address to, uint gid) public nonReentrant {
 		require(balanceOf(to) == 0, "Already in a group.");
-		require(IJTI2Config(_configAddress).GroupAdmin(_msgSender()) > 0, "Only groupAdmin can assign.");
+		require(IJTI2Config(_configAddress).groupAdmin(gid) == _msgSender(), "Only Group Admin can assign.");
 		// mint
-		uint256 tokenId = tokenGroup.length;
-        _safeMint(to, tokenId);
+		uint256 tokenId = nextTokenId;
+		nextTokenId += 1;
+		_safeMint(to, tokenId);
 		addressToken[to] = tokenId;
 		// set group id
-		uint256 gid = IJTI2Config(_configAddress).GroupAdmin(_msgSender());
 		tokenGroup.push(gid);
 		// update reverse index
 		groupMembers[gid].insert(to);
-    }
+	}
 
 	function changeGroup(uint256 tokenId, uint256 newGroupId) public nonReentrant {
 		require(tokenId < tokenGroup.length, "Group token not exists.");
-		// check caller
-		if (IJTI2Config(_configAddress).GroupAuditor(_msgSender()) == true
-			|| (IJTI2Config(_configAddress).GroupAdmin(_msgSender()) > 0
-				&& IJTI2Config(_configAddress).GroupAdmin(_msgSender()) == tokenGroup[tokenId])) {
-					require(newGroupId != tokenGroup[tokenId], "Already in this group.");
-					// set new group id
-					uint256 oldGroupId = tokenGroup[tokenId];
-					tokenGroup[tokenId] = newGroupId;
-					// update reverse index
-					groupMembers[oldGroupId].remove(ownerOf(tokenId));
-					groupMembers[newGroupId].insert(ownerOf(tokenId));
-				} else {
-					revert("Require either auditor or admin of this group to change group id.");
-				}
+		require(IJTI2Config(_configAddress).groupAuditor(_msgSender()) == true ||
+				IJTI2Config(_configAddress).groupAdmin(tokenGroup[tokenId]) == _msgSender(),
+		"Require either auditor or admin of this group to change group id.");
 
+		require(newGroupId != tokenGroup[tokenId], "Already in this group.");
+
+		// set new group id
+		uint256 oldGroupId = tokenGroup[tokenId];
+		tokenGroup[tokenId] = newGroupId;
+
+		// update reverse index
+		groupMembers[oldGroupId].remove(ownerOf(tokenId));
+		groupMembers[newGroupId].insert(ownerOf(tokenId));
 	}
-    
-    function toString(uint256 value) internal pure returns (string memory) {
-    // Inspired by OraclizeAPI's implementation - MIT license
-    // https://github.com/oraclize/ethereum-api/blob/b42146b063c7d6ee1358846c198246239e9360e8/oraclizeAPI_0.4.25.sol
 
-        if (value == 0) {
-            return "0";
-        }
-        uint256 temp = value;
-        uint256 digits;
-        while (temp != 0) {
-            digits++;
-            temp /= 10;
-        }
-        bytes memory buffer = new bytes(digits);
-        while (value != 0) {
-            digits -= 1;
-            buffer[digits] = bytes1(uint8(48 + uint256(value % 10)));
-            value /= 10;
-        }
-        return string(buffer);
-    }
-    
+	function toString(uint256 value) internal pure returns (string memory) {
+		// Inspired by OraclizeAPI's implementation - MIT license
+		// https://github.com/oraclize/ethereum-api/blob/b42146b063c7d6ee1358846c198246239e9360e8/oraclizeAPI_0.4.25.sol
+
+		if (value == 0) {
+			return "0";
+		}
+		uint256 temp = value;
+		uint256 digits;
+		while (temp != 0) {
+			digits++;
+			temp /= 10;
+		}
+		bytes memory buffer = new bytes(digits);
+		while (value != 0) {
+			digits -= 1;
+			buffer[digits] = bytes1(uint8(48 + uint256(value % 10)));
+			value /= 10;
+		}
+		return string(buffer);
+	}
+
 	function changeConfigAddress(address newConfigAddress) public onlyOwner {
 		_configAddress = newConfigAddress;
 	}
 
-    constructor(address configAddress) ERC721("JTIv2 Group", "JTI2Group") Ownable() {
+	constructor(address configAddress) ERC721("JTIv2 Group", "JTI2Group") Ownable() {
 		_configAddress = configAddress;
 	}
 }
