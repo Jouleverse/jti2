@@ -1384,7 +1384,7 @@ contract JTI2Group is SBT, ReentrancyGuard, Ownable {
 
 	function tokenURI(uint256 tokenId) override public view returns (string memory) {
 
-		string memory image = string(abi.encodePacked('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ', toString(32 + bytes(toString(tokenGroup[tokenId])).length * 20), ' 25" xml:space="preserve"><text x="2" y="20" style="font-size:20">JTI Group ', toString(tokenGroup[tokenId]), '</text>'));
+		string memory image = string(abi.encodePacked('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ', toString(130 + bytes(toString(tokenGroup[tokenId])).length * 10), ' 30" xml:space="preserve"><text x="0" y="20" style="font-size:20" font-family="monospace">JTI Group ', toString(tokenGroup[tokenId]), '</text>'));
 
 		image = string(abi.encodePacked(image, '</svg>'));
 
@@ -1424,6 +1424,15 @@ contract JTI2Group is SBT, ReentrancyGuard, Ownable {
 		// update reverse index
 		groupMembers[oldGroupId].remove(ownerOf(tokenId));
 		groupMembers[newGroupId].insert(ownerOf(tokenId));
+	}
+
+	// helpers
+	function countGroup(uint256 gid) public view returns (uint256 count) {
+		return groupMembers[gid].count();
+	}
+
+	function addressInGroup(uint256 gid, uint256 idx) public view returns (address member) {
+		return groupMembers[gid].keyAtIndex(idx);
 	}
 
 	function toString(uint256 value) internal pure returns (string memory) {

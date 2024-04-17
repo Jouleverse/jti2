@@ -105,26 +105,26 @@ contract JTI2Config is Ownable {
         _;
 	}*/
 
-	function changeGroupAdmin(uint group, address admin) onlyOwner {
+	function changeGroupAdmin(uint group, address admin) public onlyOwner {
 		groupAdmin[group] = admin;
 	}
 
-	function setGroupAuditor(address auditor) onlyOwner {
+	function setGroupAuditor(address auditor) public onlyOwner {
 		groupAuditor[auditor] = true;
 	}
 
-	function unsetGroupAuditor(address auditor) onlyOwner {
+	function unsetGroupAuditor(address auditor) public onlyOwner {
 		groupAuditor[auditor] = false;
 	}
 
-	function setIdentityAuditor(address auditor) onlyOwner {
+	function setIdentityAuditor(address auditor) public onlyOwner {
 		identityAuditor[auditor] = true;
 	}
 
-	function unsetIdentityAuditor(address auditor) onlyOwner {
+	function unsetIdentityAuditor(address auditor) public onlyOwner {
 		identityAuditor[auditor] = false;
 	}
 
-	constructor() ERC721("JTIv2 Config", "JTI2Config") Ownable() {}
+	constructor() Ownable() {}
 
 }
