@@ -32,36 +32,36 @@ JTI，就是对于在去中心化的链上实现一套可以抗女巫攻击的�
 
 把整个JTI v1的三个设计要素进行分离，解耦合为三个部分：
 
-功能 functionality | 实现 implementation | 元数据 metadata | 赋予权 assigner | 条件 condition | 撤销权 revoker
+功能 functionality | 实现 implementation | 元数据 metadata | 赋予权 assigner | 条件 condition | 修改/撤销权 modifier
 -|-|-|-|-|-
-分组标记 | group NFT | group, assigner | 责任组长 | 1. 互加微信，进分组 2. 填登记表 | 审计人
-可信身份 | identity NFT | id, timestamp, assigner | 第二组长 | 1. 互加微信 2. 二次确认登记表已填写无误 | 审计人
-可信级别 | identity NFT | 星级(scale 1-10) | Oracle | TBD | 审计人
+星球标记 | planet NFT | planet, assigner | 星球管理人(原分组组长) | 1. 互加微信，进星球群 2. 填登记表 | 审计人
+可信身份 | identity NFT | id, timestamp, assigner | 其他星球管理人 | 1. 互加微信 2. 二次确认登记表已填写无误 | 审计人
+<del>可信级别</del> | <del>identity NFT</del> | <del>星级(scale 1-10)</del> | <del>Oracle</del> | <del>TBD</del> | <del>审计人</del>
 
 ## 配置合约 JTI Config
 
 name | JTIConfig
 -|-
-owner | 平稳运行后移交给JNSDAO多签；可以增删groupAdmin、groupAuditor、identityAuditor <del>、starOracle</del>
-groupAdmin | ```mapping(uint=>address)``` 组号 1-10 未来可以扩展；<del>可以多个地址负责一个组</del> 应允许一个地址（组长）兼任多个组？；赋组时组长只能赋本组号；可以改本组成员的组号，改成其他组号（转组）
-groupAuditor | ```mapping(address=>bool)``` <del>可以revoke group NFT</del>；可以任意改组号（不能赋组号）；
+owner | 平稳运行后移交给JNSDAO多签（？）；可以配置planetName, planetColor, planetAdmin, planetAuditor, identityAuditor <del>、starOracle</del>
+planetAdmin | ```mapping(uint=>address)``` 星球可自由申请创立(需符合条件，星系管理委员会负责审核)；<del>可以多个地址负责一个组</del> 一个地址可兼管多个星球（尽量避免）；加入星球时组长只能赋本星球标记；每个人都可以自由更改自己所在星球（移民）；审计人可以更改任何人所在的星球
+planetAuditor | ```mapping(address=>bool)``` <del>可以revoke planet NFT</del>；可以任意改组号（不能赋组号）；
 identityAuditor | ```mapping(address=>bool)``` 可以revoke identity NFT <del>；可以任意编辑星级</del>
 <del>starOracle</del> | <del>```mapping(address=>uint)``` 可以在指定星级以下加星、减星</del>（暂先删除标星设计）
 
-组长兼任的情况，如果允许同一个组长使用两个地址，就会出现自己set group然后自己assign identity的问题。
+组长兼任的情况，如果允许同一个组长使用两个地址，就会出现自己set planet然后自己assign identity的问题。所以要记录assigner address并做排斥判断。
 
-## 分组标记 Group NFT
+## 星球 Planet NFT
 
-name | JTIGroup
+name | Planet
 -|-
 type | ERC-721 non-transferrable
-owner | 平稳运行后移交给JNSDAO多签；可以配置JTIConfig合约地址
-group | 组号；0 = 无分组
-groupAddressList | 反向索引，用于枚举某个组下所有的JTI
-assigner | 赋组组长的地址（记录用）
-func assign(mint) | 仅groupAdmin
-<del>func revoke(burn)</del> | 取消此功能。group NFT不需要revoke
-func changeGroup | 仅本组admin或auditor
+owner | 平稳运行后移交给JNSDAO多签（？）；可以配置JTIConfig合约地址
+planetOfToken | 星球id（0 = 地球）结合Config可以得到 name（名称），color（色彩）
+planetAddresses | 反向索引，用于枚举某个星球上所有的居民（成员）
+assignerOfToken | 谁赋予的星球标记（用于排斥判断）
+func assign(mint) | 仅planetAdmin
+<del>func revoke(burn)</del> | 取消此功能。planet NFT不需要revoke
+func changePlanet | 仅本人或auditor
 func tokenURI | 返回NFT json
 
 ## 可信身份 Identity NFT

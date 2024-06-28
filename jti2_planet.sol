@@ -1350,6 +1350,7 @@ library HitchensUnorderedAddressSetLib {
     }
 }
 
+// soul-bounded token
 abstract contract SBT is ERC721Enumerable {
 
 	modifier disabled {
@@ -1366,73 +1367,110 @@ abstract contract SBT is ERC721Enumerable {
 }
 
 interface IJTI2Config {
-	function groupAdmin(uint256) external returns (address); // admin address => group id
-	function groupAuditor(address) external returns (bool); // auditor address => true/false
+    function planetName(uint256) external view returns (string memory); // planet id => name
+    function planetColor(uint256) external view returns (string memory); // planet id => "rrggbb"
+	function planetAdmin(uint256) external view returns (address); // admin address => planet id
+	function planetAuditor(address) external view returns (bool); // auditor address => true/false
 }
 
-contract JTI2Group is SBT, ReentrancyGuard, Ownable {
+contract Planet is SBT, ReentrancyGuard, Ownable {
 
 	address public _configAddress;
 
 	uint256 public nextTokenId = 0; // used for minting token, esp. while supporting revoke
 
-	uint256[] public tokenGroup; // token id => group id
-	mapping(address => uint256) public addressToken; // address => token id
+	uint256[] public planetOfToken; // token id => planet id
+    address[] public assignerOfToken; // token id = > assigner address (for invalidating jti assigner address)
+	//mapping(address => uint256) public tokenIdOfAddress; // address => token id
 
 	using HitchensUnorderedAddressSetLib for HitchensUnorderedAddressSetLib.Set;
-	mapping(uint256 => HitchensUnorderedAddressSetLib.Set) groupMembers; // group id => address set
+	mapping(uint256 => HitchensUnorderedAddressSetLib.Set) planetAddresses; // planet id => address set
 
 	function tokenURI(uint256 tokenId) override public view returns (string memory) {
 
-		string memory image = string(abi.encodePacked('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ', toString(130 + bytes(toString(tokenGroup[tokenId])).length * 10), ' 30" xml:space="preserve"><text x="0" y="20" style="font-size:20" font-family="monospace">JTI Group ', toString(tokenGroup[tokenId]), '</text>'));
+        string memory planetName = IJTI2Config(_configAddress).planetName(planetOfToken[tokenId]);
+        string memory planetColor = IJTI2Config(_configAddress).planetColor(planetOfToken[tokenId]);
+        bytes memory name = bytes(planetName);
+        uint w = 40 + 30 * (name.length + 7); // 7 = length of ".planet"
+        uint gw = 30 * name.length;
+        uint xj = 20 + 30 * name.length;
 
-		image = string(abi.encodePacked(image, '</svg>'));
+        string[21] memory parts;
 
-		string memory json = Base64.encode(bytes(string(abi.encodePacked('{"name": "JTIv2 Group #', toString(tokenId), '", "description": "JTIv2 Group", "group":', toString(tokenGroup[tokenId]), ', "image": "data:image/svg+xml;base64,', Base64.encode(bytes(image)), '"}'))));
+        parts[0] = '<svg viewBox="0 0 ';
+        parts[1] = toString(w);
+        parts[2] = ' 60" xmlns="http://www.w3.org/2000/svg"><rect x="1" y="1" rx="10" ry="10" width="';
+        parts[3] = toString(w-2);
+        parts[4] = '" height="58" style="fill:#fff;stroke:#';
+        parts[5] = planetColor;
+        parts[6] = ';stroke-width:1"/><rect rx="10" ry="10" width="';
+        parts[7] = toString(gw);
+        parts[8] = '" height="60" style="fill:#';
+        parts[9] = planetColor;
+        parts[10] = '"/><path style="fill:#';
+        parts[11] = planetColor;
+        parts[12] = '" d="M20 0h';
+        parts[13] = toString(gw);
+        parts[14] = 'v60H20z"/><text x="20" y="45" style="font:48px monospace;fill:#fff">';
+        parts[15] = planetName;
+        parts[16] = '</text><text x="';
+        parts[17] = toString(xj);
+        parts[18] = '" y="45" style="font:48px monospace;fill:#';
+        parts[19] = planetColor;
+        parts[20] = '">.planet</text></svg>';
+
+        string memory image = string(abi.encodePacked(parts[0],parts[1],parts[2],parts[3],parts[4],parts[5],parts[6],parts[7],parts[8]));
+        image = string(abi.encodePacked(image,parts[9],parts[10],parts[11],parts[12],parts[13],parts[14],parts[15],parts[16],parts[17]));
+        image = string(abi.encodePacked(image,parts[18],parts[19],parts[20]));
+
+		string memory json = Base64.encode(bytes(string(abi.encodePacked('{"name": "Planet #', toString(tokenId), '", "description": "', planetName , '", "planetId":', toString(planetOfToken[tokenId]), ', "image": "data:image/svg+xml;base64,', Base64.encode(bytes(image)), '"}'))));
 
 		string memory output = string(abi.encodePacked('data:application/json;base64,', json));
 
 		return output;
 	}
 
-	function assign(address to, uint gid) public nonReentrant {
-		require(balanceOf(to) == 0, "Already in a group.");
-		require(IJTI2Config(_configAddress).groupAdmin(gid) == _msgSender(), "Only Group Admin can assign.");
+	function assign(address to, uint planetId) public nonReentrant {
+		require(balanceOf(to) == 0, "Already on a planet.");
+		require(IJTI2Config(_configAddress).planetAdmin(planetId) == _msgSender(), "Only Planet Admin can assign.");
 		// mint
 		uint256 tokenId = nextTokenId;
 		nextTokenId += 1;
 		_safeMint(to, tokenId);
-		addressToken[to] = tokenId;
-		// set group id
-		tokenGroup.push(gid);
+		//tokenIdOfAddress[to] = tokenId;
+
+        // record assigner address
+        assignerOfToken[tokenId] = _msgSender();
+		// set planet id
+		planetOfToken.push(planetId);
 		// update reverse index
-		groupMembers[gid].insert(to);
+		planetAddresses[planetId].insert(to);
 	}
 
-	function changeGroup(uint256 tokenId, uint256 newGroupId) public nonReentrant {
-		require(tokenId < tokenGroup.length, "Group token not exists.");
-		require(IJTI2Config(_configAddress).groupAuditor(_msgSender()) == true ||
-				IJTI2Config(_configAddress).groupAdmin(tokenGroup[tokenId]) == _msgSender(),
-		"Require either auditor or admin of this group to change group id.");
+	function changePlanet(uint256 tokenId, uint256 newPlanetId) public nonReentrant {
+		require(tokenId < planetOfToken.length, "Not yet on a planet.");
+		require(IJTI2Config(_configAddress).planetAuditor(_msgSender()) == true ||
+				ownerOf(tokenId) == _msgSender(),
+		"Only Planet Member him/herself or Auditor to change his/her planet.");
 
-		require(newGroupId != tokenGroup[tokenId], "Already in this group.");
+		require(newPlanetId != planetOfToken[tokenId], "Already on this planet.");
 
-		// set new group id
-		uint256 oldGroupId = tokenGroup[tokenId];
-		tokenGroup[tokenId] = newGroupId;
+		// set new planet id
+		uint256 oldPlanetId = planetOfToken[tokenId];
+		planetOfToken[tokenId] = newPlanetId;
 
 		// update reverse index
-		groupMembers[oldGroupId].remove(ownerOf(tokenId));
-		groupMembers[newGroupId].insert(ownerOf(tokenId));
+		planetAddresses[oldPlanetId].remove(ownerOf(tokenId));
+		planetAddresses[newPlanetId].insert(ownerOf(tokenId));
 	}
 
 	// helpers
-	function countGroup(uint256 gid) public view returns (uint256 count) {
-		return groupMembers[gid].count();
+	function countPlanetAddresses(uint256 planetId) public view returns (uint256 count) {
+		return planetAddresses[planetId].count();
 	}
 
-	function addressInGroup(uint256 gid, uint256 idx) public view returns (address member) {
-		return groupMembers[gid].keyAtIndex(idx);
+	function addressOnPlanet(uint256 planetId, uint256 idx) public view returns (address member) {
+		return planetAddresses[planetId].keyAtIndex(idx);
 	}
 
 	function toString(uint256 value) internal pure returns (string memory) {
@@ -1461,7 +1499,7 @@ contract JTI2Group is SBT, ReentrancyGuard, Ownable {
 		_configAddress = newConfigAddress;
 	}
 
-	constructor(address configAddress) ERC721("JTIv2 Group", "JTI2Group") Ownable() {
+	constructor(address configAddress) ERC721("Planet", "Planet") Ownable() {
 		_configAddress = configAddress;
 	}
 }

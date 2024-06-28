@@ -91,12 +91,14 @@ abstract contract Ownable is Context {
 
 contract JTI2Config is Ownable {
 
-	mapping(uint=>address) public groupAdmin; // group id => group admin address
-	mapping(address=>bool) public groupAuditor; // group auditor address => true/false
+	mapping(uint=>address) public planetAdmin; // planet id => planet admin address
+	mapping(address=>bool) public planetAuditor; // planet auditor address => true/false
 	mapping(address=>bool) public identityAuditor; // identity auditor address => true/false
+    mapping(uint=>string) public planetName;
+    mapping(uint=>string) public planetColor; // RRGGBB without leading #
 
-	/*modifier onlyGroupAuditor {
-        require(groupAuditor[_msgSender()] == true, "Group Auditor required.");
+	/*modifier onlyPlanetAuditor {
+        require(planetAuditor[_msgSender()] == true, "Planet Auditor required.");
         _;
 	}
 
@@ -105,16 +107,24 @@ contract JTI2Config is Ownable {
         _;
 	}*/
 
-	function changeGroupAdmin(uint group, address admin) public onlyOwner {
-		groupAdmin[group] = admin;
+	function changePlanetName(uint planet, string memory name) public onlyOwner {
+		planetName[planet] = name;
 	}
 
-	function setGroupAuditor(address auditor) public onlyOwner {
-		groupAuditor[auditor] = true;
+	function changePlanetColor(uint planet, string memory color) public onlyOwner {
+		planetColor[planet] = color;
 	}
 
-	function unsetGroupAuditor(address auditor) public onlyOwner {
-		groupAuditor[auditor] = false;
+	function changePlanetAdmin(uint planet, address admin) public onlyOwner {
+		planetAdmin[planet] = admin;
+	}
+
+	function setPlanetAuditor(address auditor) public onlyOwner {
+		planetAuditor[auditor] = true;
+	}
+
+	function unsetPlanetAuditor(address auditor) public onlyOwner {
+		planetAuditor[auditor] = false;
 	}
 
 	function setIdentityAuditor(address auditor) public onlyOwner {
