@@ -1420,8 +1420,8 @@ contract Planet is SBT, ReentrancyGuard, Ownable {
         parts[20] = '">.planet</text></svg>';
 
         string memory image = string(abi.encodePacked(parts[0],parts[1],parts[2],parts[3],parts[4],parts[5],parts[6],parts[7],parts[8]));
-        image = string(abi.encodePacked(image,parts[9],parts[10],parts[11],parts[12],parts[13],parts[14],parts[15],parts[16],parts[17]));
-        image = string(abi.encodePacked(image,parts[18],parts[19],parts[20]));
+        image = string(abi.encodePacked(image,parts[9],parts[10],parts[11],parts[12],parts[13],parts[14],parts[15],parts[16]));
+        image = string(abi.encodePacked(image,parts[17],parts[18],parts[19],parts[20]));
 
         string memory json = Base64.encode(bytes(string(abi.encodePacked('{"name": "Planet #', toString(tokenId), '", "description": "', planetName , '", "planetId":', toString(planetOfToken[tokenId]), ', "image": "data:image/svg+xml;base64,', Base64.encode(bytes(image)), '"}'))));
 
