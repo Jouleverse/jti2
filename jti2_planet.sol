@@ -1440,7 +1440,7 @@ contract Planet is SBT, ReentrancyGuard, Ownable {
         //tokenIdOfAddress[to] = tokenId;
 
         // record assigner address
-        assignerOfToken[tokenId] = _msgSender();
+        assignerOfToken.push(_msgSender());
         // set planet id
         planetOfToken.push(planetId);
         // update reverse index
