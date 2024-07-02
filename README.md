@@ -50,6 +50,8 @@ identityAuditor | ```mapping(address=>bool)``` 可以revoke identity NFT <del>�
 
 组长兼任的情况，如果允许同一个组长使用两个地址，就会出现自己set planet然后自己assign identity的问题。所以要记录assigner address并做排斥判断。
 
+一个星球只能有一个admin。多人共管的情况，那就上面套一层多签。
+
 ## 星球 Planet NFT
 
 name | Planet
@@ -72,6 +74,7 @@ type | ERC-721 non-transferrable
 owner | 平稳运行后移交给JNSDAO多签/core多签（？）；可以配置JTIConfig合约地址、Planet合约地址
 ICON_COLOR | 视觉色彩，初始默认 string"a00", can be changed by owner
 verifier | 验证者地址。谁赋予JTI标记（用于审计）
+verifiedByPlanet | 验证者管理的星球id
 sinceBlock | 获得认证时的区块高度, can be fixed by owner 
 sinceTimestamp | 获得认证时的timestamp, can be fixed by owner
 func trust(mint) | 仅planetAdmin (& identity auditor) 且 非Planet assigner

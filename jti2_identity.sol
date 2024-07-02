@@ -1375,7 +1375,7 @@ interface IJTI2Planet {
     function balanceOf(address owner) external view returns (uint256 balance);
     function tokenOfOwnerByIndex(address owner, uint256 index) external view returns (uint256 tokenId);
     function assignerOfToken(uint256 tokenId) external view returns (address assigner); // token id => assigner address
-    function planetOfToken(uint256 tokenId) external view returns (uint256 planetId); // token id => planet id
+    //function planetOfToken(uint256 tokenId) external view returns (uint256 planetId); // token id => planet id
 }
 
 contract Identity is SBT, ReentrancyGuard, Ownable {
@@ -1385,6 +1385,7 @@ contract Identity is SBT, ReentrancyGuard, Ownable {
 
     uint256 public nextTokenId = 0; // used for minting token, esp. while supporting revoke
     address[] public verifierOfToken; // token id = > verifier address (for audit use)
+    uint256[] public planetVerify; // token id = > planet admined by verifier (for check verifier admin role). meaning, planet XX trust this identity.
     //mapping(address => uint256) public tokenIdOfAddress; // address => token id (use tokenOfOwnerByIndex instead)
     uint256[] public sinceBlock; // token id => since block height
     uint256[] public sinceTimestamp; // token id => since block timestamp
@@ -1401,24 +1402,30 @@ contract Identity is SBT, ReentrancyGuard, Ownable {
 
         string memory image = string(abi.encodePacked(parts[0],parts[1],parts[2]));
 
-        string memory json = Base64.encode(bytes(string(abi.encodePacked('{"name": "JTI#', toString(tokenId), '", "description": "', toString(tokenId), '", "id":"', toString(tokenId), '", "assigner": "', verifierOfToken[tokenId], '", "sinceBlock":"', toString(sinceBlock[tokenId]), '", "sinceTimestamp": "', toString(sinceTimestamp[tokenId]), '", "image": "data:image/svg+xml;base64,', Base64.encode(bytes(image)), '"}'))));
+        //string memory verifier_str = string(abi.encodePacked(verifierOfToken[tokenId])); // not human-readable
+
+        string memory json = string(abi.encodePacked('{"name": "JTI#', toString(tokenId), '", "description": "J Trusted Identity (v2) #', toString(tokenId), '", "id":"', toString(tokenId)));
+
+        json = string(abi.encodePacked(json, '", "verifiedByPlanet":"', toString(planetVerify[tokenId]), '", "sinceBlock":"', toString(sinceBlock[tokenId]), '", "sinceTimestamp": "', toString(sinceTimestamp[tokenId]), '", "image": "data:image/svg+xml;base64,', Base64.encode(bytes(image)), '"}'));
+
+        json = Base64.encode(bytes(json));
 
         string memory output = string(abi.encodePacked('data:application/json;base64,', json));
 
         return output;
     }
 
-    function trust(address to) public nonReentrant {
+    function trust(address to, uint256 byPlanetId) public nonReentrant {
         require(balanceOf(to) == 0, "Already be verified and trusted.");
 
         require(IJTI2Planet(_planetAddress).balanceOf(to) > 0, "NOT on any planet.");
 
         uint256 planetTokenId = IJTI2Planet(_planetAddress).tokenOfOwnerByIndex(to, 0);
-        uint256 planetId = IJTI2Planet(_planetAddress).planetOfToken(planetTokenId);
+        //uint256 planetId = IJTI2Planet(_planetAddress).planetOfToken(planetTokenId);
         address planetAssigner = IJTI2Planet(_planetAddress).assignerOfToken(planetTokenId);
 
         require(planetAssigner != _msgSender() , "Planet Assigner CANNOT do this. Contact ANOTHER Planet Admin to verify.");
-        require(IJTI2Config(_configAddress).planetAdmin(planetId) == _msgSender() 
+        require(IJTI2Config(_configAddress).planetAdmin(byPlanetId) == _msgSender() 
             || IJTI2Config(_configAddress).identityAuditor(_msgSender()) == true, "Only Planet Admin or Identity Auditor can verify and trust an identity.");
 
         // mint
@@ -1426,8 +1433,9 @@ contract Identity is SBT, ReentrancyGuard, Ownable {
         nextTokenId += 1;
         _safeMint(to, tokenId);
 
-        // record assigner address
+        // record verifier and planet that trust this identity
         verifierOfToken.push(_msgSender());
+        planetVerify.push(byPlanetId);
         // record since block and timestamp
         sinceBlock.push(block.number);
         sinceTimestamp.push(block.timestamp);
