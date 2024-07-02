@@ -1418,7 +1418,8 @@ contract Identity is SBT, ReentrancyGuard, Ownable {
         address planetAssigner = IJTI2Planet(_planetAddress).assignerOfToken(planetTokenId);
 
         require(planetAssigner != _msgSender() , "Planet Assigner CANNOT do this. Contact ANOTHER Planet Admin to verify.");
-        require(IJTI2Config(_configAddress).planetAdmin(planetId) == _msgSender(), "Only Planet Admin can verify and trust an identity.");
+        require(IJTI2Config(_configAddress).planetAdmin(planetId) == _msgSender() 
+            || IJTI2Config(_configAddress).identityAuditor(_msgSender()) == true, "Only Planet Admin or Identity Auditor can verify and trust an identity.");
 
         // mint
         uint256 tokenId = nextTokenId;

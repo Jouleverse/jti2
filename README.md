@@ -74,7 +74,7 @@ ICON_COLOR | 视觉色彩，初始默认 string"a00", can be changed by owner
 verifier | 验证者地址。谁赋予JTI标记（用于审计）
 sinceBlock | 获得认证时的区块高度, can be fixed by owner 
 sinceTimestamp | 获得认证时的timestamp, can be fixed by owner
-func trust(mint) | 仅planetAdmin 且 非Planet assigner
+func trust(mint) | 仅planetAdmin (& identity auditor) 且 非Planet assigner
 func distrust(burn) | 仅identityAuditor 
 func tokenURI | 返回NFT json
 
