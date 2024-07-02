@@ -1375,7 +1375,7 @@ interface IJTI2Planet {
     function balanceOf(address owner) external view returns (uint256 balance);
     function tokenOfOwnerByIndex(address owner, uint256 index) external view returns (uint256 tokenId);
     function assignerOfToken(uint256 tokenId) external view returns (address assigner); // token id => assigner address
-    //function planetOfToken(uint256 tokenId) external view returns (uint256 planetId); // token id => planet id
+    function planetOfToken(uint256 tokenId) external view returns (uint256 planetId); // token id => planet id
 }
 
 contract Identity is SBT, ReentrancyGuard, Ownable {
@@ -1390,7 +1390,7 @@ contract Identity is SBT, ReentrancyGuard, Ownable {
     uint256[] public sinceBlock; // token id => since block height
     uint256[] public sinceTimestamp; // token id => since block timestamp
 
-    string ICON_COLOR = "a00"; // can be changed by owner (rarely use)
+    string ICON_COLOR = "c647ba"; // can be changed by owner (rarely change)
 
     function tokenURI(uint256 tokenId) override public view returns (string memory) {
 
@@ -1404,7 +1404,10 @@ contract Identity is SBT, ReentrancyGuard, Ownable {
 
         //string memory verifier_str = string(abi.encodePacked(verifierOfToken[tokenId])); // not human-readable
 
-        string memory json = string(abi.encodePacked('{"name": "JTI#', toString(tokenId), '", "description": "J Trusted Identity (v2) #', toString(tokenId), '", "id":"', toString(tokenId)));
+        uint256 planetTokenId = IJTI2Planet(_planetAddress).tokenOfOwnerByIndex(ownerOf(tokenId), 0);
+        uint256 planetId = IJTI2Planet(_planetAddress).planetOfToken(planetTokenId);
+
+        string memory json = string(abi.encodePacked('{"name": "JTI#', toString(tokenId), '", "description": "J Trusted Identity (v2) #', toString(tokenId), '", "id":"', toString(tokenId), '", "onPlanet":"', toString(planetId)));
 
         json = string(abi.encodePacked(json, '", "verifiedByPlanet":"', toString(planetVerify[tokenId]), '", "sinceBlock":"', toString(sinceBlock[tokenId]), '", "sinceTimestamp": "', toString(sinceTimestamp[tokenId]), '", "image": "data:image/svg+xml;base64,', Base64.encode(bytes(image)), '"}'));
 
@@ -1421,7 +1424,6 @@ contract Identity is SBT, ReentrancyGuard, Ownable {
         require(IJTI2Planet(_planetAddress).balanceOf(to) > 0, "NOT on any planet.");
 
         uint256 planetTokenId = IJTI2Planet(_planetAddress).tokenOfOwnerByIndex(to, 0);
-        //uint256 planetId = IJTI2Planet(_planetAddress).planetOfToken(planetTokenId);
         address planetAssigner = IJTI2Planet(_planetAddress).assignerOfToken(planetTokenId);
 
         require(planetAssigner != _msgSender() , "Planet Assigner CANNOT do this. Contact ANOTHER Planet Admin to verify.");
@@ -1489,7 +1491,7 @@ contract Identity is SBT, ReentrancyGuard, Ownable {
         ICON_COLOR = newColor;
     }
 
-    constructor(address configAddress, address planetAddress) ERC721("Identity", "Identity") Ownable() {
+    constructor(address configAddress, address planetAddress) ERC721("J Trusted Identity", "JTI") Ownable() {
         _configAddress = configAddress;
         _planetAddress = planetAddress;
     }

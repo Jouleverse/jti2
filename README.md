@@ -72,7 +72,7 @@ name | Identity
 -|-
 type | ERC-721 non-transferrable
 owner | 平稳运行后移交给JNSDAO多签/core多签（？）；可以配置JTIConfig合约地址、Planet合约地址
-ICON_COLOR | 视觉色彩，初始默认 string"a00", can be changed by owner
+ICON_COLOR | 视觉色彩，初始默认 string"c647ba", can be changed by owner
 verifier | 验证者地址。谁赋予JTI标记（用于审计）
 verifiedByPlanet | 验证者管理的星球id
 sinceBlock | 获得认证时的区块高度, can be fixed by owner 
