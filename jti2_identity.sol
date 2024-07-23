@@ -1282,90 +1282,6 @@ library Base64 {
     }
 }
 
-/*
-   Hitchens UnorderedAddressSet v0.93
-
-Library for managing CRUD operations in dynamic address sets.
-
-        https://github.com/rob-Hitchens/UnorderedKeySet
-
-            Copyright (c), 2019, Rob Hitchens, the MIT License
-
-    Permission is hereby granted, free of charge, to any person obtaining a copy
-    of this software and associated documentation files (the "Software"), to deal
-    in the Software without restriction, including without limitation the rights
-    to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-    copies of the Software, and to permit persons to whom the Software is
-    furnished to do so, subject to the following conditions:
-
-        The above copyright notice and this permission notice shall be included in all
-    copies or substantial portions of the Software.
-
-        THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-    FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-    AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-    LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-    OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-    SOFTWARE.
-
-        THIS SOFTWARE IS NOT TESTED OR AUDITED. DO NOT USE FOR PRODUCTION.
-        */
-
-library HitchensUnorderedAddressSetLib {
-
-    struct Set {
-        mapping(address => uint) keyPointers;
-        address[] keyList;
-    }
-
-    function insert(Set storage self, address key) internal {
-        require(key != address(0), "UnorderedKeySet(100) - Key cannot be 0x0");
-        require(!exists(self, key), "UnorderedAddressSet(101) - Address (key) already exists in the set.");
-        self.keyList.push(key);
-        self.keyPointers[key] = self.keyList.length - 1;
-    }
-
-    function remove(Set storage self, address key) internal {
-        require(exists(self, key), "UnorderedKeySet(102) - Address (key) does not exist in the set.");
-        address keyToMove = self.keyList[count(self)-1];
-        uint rowToReplace = self.keyPointers[key];
-        self.keyPointers[keyToMove] = rowToReplace;
-        self.keyList[rowToReplace] = keyToMove;
-        delete self.keyPointers[key];
-        self.keyList.pop();
-    }
-
-    function count(Set storage self) internal view returns(uint) {
-        return(self.keyList.length);
-    }
-
-    function exists(Set storage self, address key) internal view returns(bool) {
-        if(self.keyList.length == 0) return false;
-        return self.keyList[self.keyPointers[key]] == key;
-    }
-
-    function keyAtIndex(Set storage self, uint index) internal view returns(address) {
-        return self.keyList[index];
-    }
-}
-
-// soul-bounded token
-abstract contract SBT is ERC721Enumerable {
-
-    modifier disabled {
-        require(false);
-        _;
-    }
-
-    function safeTransferFrom(address from, address to, uint256 tokenId) public disabled override {} 
-
-    function transferFrom(address from, address to, uint256 tokenId) public disabled override {}
-
-    function safeTransferFrom(address from, address to, uint256 tokenId, bytes calldata data) public disabled override {}
-
-}
-
 interface IJTI2Config {
     function planetAdmin(uint256) external view returns (address); // admin address => planet id
     function identityAuditor(address) external view returns (bool); // auditor address => true/false
@@ -1378,14 +1294,14 @@ interface IJTI2Planet {
     function planetOfToken(uint256 tokenId) external view returns (uint256 planetId); // token id => planet id
 }
 
-contract Identity is SBT, ReentrancyGuard, Ownable {
+contract Identity is ERC721Enumerable, ReentrancyGuard, Ownable {
 
     address public _configAddress;
     address public _planetAddress; // address of deployed Planet Contract
 
     uint256 public nextTokenId = 0; // used for minting token, esp. while supporting revoke
     address[] public verifierOfToken; // token id = > verifier address (for audit use)
-    uint256[] public planetVerify; // token id = > planet admined by verifier (for check verifier admin role). meaning, planet XX trust this identity.
+    uint256[] public planetVerify; // token id = > planet admined by verifier (for check verifier admin role). meaning, planet XX register this identity.
     //mapping(address => uint256) public tokenIdOfAddress; // address => token id (use tokenOfOwnerByIndex instead)
     uint256[] public sinceBlock; // token id => since block height
     uint256[] public sinceTimestamp; // token id => since block timestamp
@@ -1418,9 +1334,13 @@ contract Identity is SBT, ReentrancyGuard, Ownable {
         return output;
     }
 
-    function trust(address to, uint256 byPlanetId) public nonReentrant {
-        require(balanceOf(to) == 0, "Already be verified and trusted.");
+    modifier onlyOnce(address to) {
+        require(balanceOf(to) == 0, "Already be verified and registered.");
 
+        _;
+    }
+
+    modifier onlyAnother(address to, uint256 byPlanetId) {
         require(IJTI2Planet(_planetAddress).balanceOf(to) > 0, "NOT on any planet.");
 
         uint256 planetTokenId = IJTI2Planet(_planetAddress).tokenOfOwnerByIndex(to, 0);
@@ -1428,14 +1348,19 @@ contract Identity is SBT, ReentrancyGuard, Ownable {
 
         require(planetAssigner != _msgSender() , "Planet Assigner CANNOT do this. Contact ANOTHER Planet Admin to verify.");
         require(IJTI2Config(_configAddress).planetAdmin(byPlanetId) == _msgSender() 
-            || IJTI2Config(_configAddress).identityAuditor(_msgSender()) == true, "Only Planet Admin or Identity Auditor can verify and trust an identity.");
+            || IJTI2Config(_configAddress).identityAuditor(_msgSender()) == true, "Only Planet Admin or Identity Auditor can verify and register an identity.");
 
+        _;
+    }
+
+    // newly assign
+    function assign(address to, uint256 byPlanetId) public onlyOnce(to) onlyAnother(to, byPlanetId) nonReentrant {
         // mint
         uint256 tokenId = nextTokenId;
         nextTokenId += 1;
         _safeMint(to, tokenId);
 
-        // record verifier and planet that trust this identity
+        // record verifier and planet that register this identity
         verifierOfToken.push(_msgSender());
         planetVerify.push(byPlanetId);
         // record since block and timestamp
@@ -1443,9 +1368,19 @@ contract Identity is SBT, ReentrancyGuard, Ownable {
         sinceTimestamp.push(block.timestamp);
     }
 
-    function distrust(uint256 tokenId) public nonReentrant {
-        //require(balanceOf(to) > 0, "No JTI. NOT yet be verified and trusted.");
-        require(IJTI2Config(_configAddress).identityAuditor(_msgSender()) == true, "Only Identity Auditor can distrust an identity.");
+    // re-assign old tokenId
+    function reassign(address to, uint256 tokenId, uint256 byPlanetId) public onlyOnce(to) onlyAnother(to, byPlanetId) nonReentrant {
+        require(tokenId < nextTokenId, "Use assign() instead to generate new JTI.");
+
+        // mint
+        _safeMint(to, tokenId);
+
+        // verifierOfToken, planetVerify, sinceBlock, sinceTimestamp would not change here. no need to update.
+    }
+
+    function revoke(uint256 tokenId) public nonReentrant {
+        //require(balanceOf(to) > 0, "No JTI. NOT yet be verified and registerd.");
+        require(IJTI2Config(_configAddress).identityAuditor(_msgSender()) == true, "Only Identity Auditor can revoke an identity.");
         // burn
         _burn(tokenId);
     }
