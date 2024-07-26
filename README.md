@@ -28,6 +28,40 @@ JTI，就是对于在去中心化的链上实现一套可以抗女巫攻击的�
 
 另外，区块链的所谓抗审查性，指的是下层节点不对上层应用的交易数据进行价值判断和过滤，而绝非指对抗现实世界的法律秩序和道德规范。越是应用链，越是远离货币（如BTC）这一包容性最强的应用场景，就越是要注意符合现实世界的秩序和规范，并尽可能在上层应用层主动担当起合规义务。
 
+## 认证流程 Procedure
+
+认证参与角色有三个人：球长（负责人，赋予星球标识），另一个球长（见证人，赋予JTI认证标识），审计人（负责审计登记信息）
+
+一、用户和球长取得联系
+
+分两种情况：
+
+- 用户主动：通过[行星列表](https://github.com/Jouleverse/planetary-system/blob/main/README.md)中球长的微信号，联系到球长
+- 球长主动：对于任何人拉进相关微信群中的新用户，凡没有认证的，主动联系
+
+二、球长帮助用户上星（入驻星球）
+
+步骤：
+1. 球长确认正确添加了用户微信，把用户拉进自己管理的星球微信群，并指导用户正确添加Jouleverse网络并创建自己的Jouleverse链地址
+2. 球长使用[合约工具](https://jscan.jnsdao.com/tools/contractx/#contract-tab-Planet)给用户的链地址赋予(assign)本星标识
+3. 球长请用户填写[《JTI可信身份认证信息登记表》](https://docs.qq.com/form/page/DTFBXQmtLRktRT1ZN#/fill)
+4. 球长给用户介绍另外一个球长作为见证人，引导用户添加见证人微信，告知链地址和昵称，请见证人对其进行JTI认证
+
+三、见证人验证用户真实性，进行JTI认证
+
+步骤：
+1. 见证人（另一球长）使用[合约工具](https://jscan.jnsdao.com/tools/contractx/#contract-tab-JTI2)给用户地址赋予(assign) JTI认证标识
+2. 见证人在【Jouleverse球长交流群】中，报告完成新的JTI认证，说明被认证用户的昵称和JTI编号，并 @ 提醒审计人（目前是Koant或教链）进行处理
+
+四、审计人后向审核用户登记信息无误
+
+步骤：
+1. 审计人查看[《JTI可信身份认证信息登记表》](https://docs.qq.com/sheet/DTGtOTVdjbmxoc1lD)审核新认证用户的各项资料，检查其链地址上的星球标识和JTI标识无误，重点是核查是否是同一身份重复认证
+2. 经审计无误后，审计人把该名新用户的JTI编号和认证时间（日期）补充到《登记表》中（确保与链上信息一致），备案留查
+3. 审计人在【Jouleverse球长交流群】中，报告审计无误，说明被审计用户昵称和JTI编号，并 @ 该用户所在星球的球长，提醒他了解该用户已完成JTI认证
+
+（全流程完）
+
 ## 设计思路 Design
 
 把整个JTI v1的三个设计要素进行分离，解耦合为三个部分：
@@ -36,7 +70,7 @@ JTI，就是对于在去中心化的链上实现一套可以抗女巫攻击的�
 -|-|-|-|-|-
 星球标记 | planet NFT | planet, assigner | 星球管理人(原分组组长) | 1. 互加微信，进星球群 2. 填登记表 | 审计人
 可信身份 | identity NFT | id, timestamp, assigner | 其他星球管理人 | 1. 互加微信 2. 二次确认登记表已填写无误 | 审计人
-<del>可信级别</del> | <del>identity NFT</del> | <del>星级(scale 1-10)</del> | <del>Oracle</del> | <del>TBD</del> | <del>审计人</del>
+<del>可信级别（删除）</del> | <del>identity NFT</del> | <del>星级(scale 1-10)</del> | <del>Oracle</del> | <del>TBD</del> | <del>审计人</del>
 
 ## 配置合约 JTI Config
 
@@ -82,4 +116,6 @@ func assign | mint. 仅planetAdmin (& identity auditor) 且 非Planet assigner
 func revoke | burn. 仅identityAuditor 
 func reassign | mint with older tokenId.
 func tokenURI | 返回NFT json
+
+
 
