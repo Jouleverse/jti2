@@ -57,7 +57,7 @@ identityAuditor | ```mapping(address=>bool)``` 可以revoke identity NFT <del>�
 name | Planet
 -|-
 type | ERC-721 non-transferrable
-owner | 平稳运行后移交给JNSDAO多签/core多签（？）；可以配置JTIConfig合约地址
+owner | 平稳运行后移交给core多签（？）；可以配置JTIConfig合约地址
 planetOfToken | 星球id（0 = 地球）结合Config可以得到 name（名称），color（色彩）
 planetAddresses | 反向索引，用于枚举某个星球上所有的居民（成员）
 assignerOfToken | 谁赋予的星球标记（用于排斥判断）
@@ -71,13 +71,15 @@ func tokenURI | 返回NFT json
 name | Identity
 -|-
 type | ERC-721 non-transferrable
-owner | 平稳运行后移交给JNSDAO多签/core多签（？）；可以配置JTIConfig合约地址、Planet合约地址
+owner | 平稳运行后移交给core多签（？）；可以配置JTIConfig合约地址、Planet合约地址；可以fixSince
 ICON_COLOR | 视觉色彩，初始默认 string"c647ba", can be changed by owner
+transfer | 允许持有者transfer，相当于更改地址
 verifier | 验证者地址。谁赋予JTI标记（用于审计）
 verifiedByPlanet | 验证者管理的星球id
 sinceBlock | 获得认证时的区块高度, can be fixed by owner 
 sinceTimestamp | 获得认证时的timestamp, can be fixed by owner
-func trust(mint) | 仅planetAdmin (& identity auditor) 且 非Planet assigner
-func distrust(burn) | 仅identityAuditor 
+func assign | mint. 仅planetAdmin (& identity auditor) 且 非Planet assigner
+func revoke | burn. 仅identityAuditor 
+func reassign | mint with older tokenId.
 func tokenURI | 返回NFT json
 
